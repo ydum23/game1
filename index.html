@@ -32,6 +32,8 @@
           <div class="emoji">🐍</div>
           <h2 id="overlay-title">准备好了吗？</h2>
           <p id="overlay-text">选择一个难度，然后开始</p>
+          <!-- 游戏结束时展示：本局得分 / 历史最高 -->
+          <div id="overlay-score" class="overlay-score"></div>
           <div class="diff-row">
             <button class="diff-btn" data-diff="easy">简单</button>
             <button class="diff-btn active" data-diff="normal">普通</button>
@@ -48,7 +50,7 @@
       <button id="mute-btn" class="btn ghost" title="音效开关">🔊</button>
     </div>
 
-    <p class="hint">电脑：方向键 / WASD 移动，空格暂停 · 手机：滑动屏幕控制方向</p>
+    <p class="hint">电脑：方向键 / WASD 移动，空格暂停 · 手机：在画面上滑动控制方向</p>
   </main>
 
   <script src="game.js"></script>

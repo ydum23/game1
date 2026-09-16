@@ -8,6 +8,7 @@
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const overlayText = document.getElementById("overlay-text");
+  const overlayScore = document.getElementById("overlay-score");
   const startBtn = document.getElementById("start-btn");
   const pauseBtn = document.getElementById("pause-btn");
   const restartBtn = document.getElementById("restart-btn");
@@ -28,6 +29,7 @@
 
   let snake, prevSnake, dir, nextDir, food, score, best, state;
   let stepInterval, elapsed, lastTime, particles, floaters, shake, rafId, countdownText = "", countdownToken = 0;
+  let newRecordThisGame = false;
 
   best = Number(localStorage.getItem("snake2_best") || 0);
   bestEl.textContent = best;
@@ -52,9 +54,16 @@
       o.stop(t + (dur || 0.1));
     } catch (e) { /* 忽略音频错误 */ }
   }
+  // 吃食物：清脆短音
   const sndEat = () => beep(680, 0.08, "square", 0.045);
-  const sndDie = () => { beep(220, 0.3, "sawtooth", 0.06); setTimeout(() => beep(120, 0.45, "sawtooth", 0.06), 130); };
+  // 撞击墙壁 / 游戏结束：低沉撞击声（先“咚”后“咔”）
+  const sndCrash = () => {
+    beep(170, 0.16, "sawtooth", 0.07);
+    setTimeout(() => beep(85, 0.34, "square", 0.07), 90);
+  };
+  // 倒计时数字
   const sndStart = () => beep(520, 0.12, "sine", 0.04);
+  // 倒计时 GO!
   const sndGo = () => beep(880, 0.14, "square", 0.05);
 
   function rand(n) { return Math.floor(Math.random() * n); }
@@ -79,6 +88,7 @@
     particles = [];
     floaters = [];
     shake = 0;
+    newRecordThisGame = false;
     stepInterval = currentDiff();
     scoreEl.textContent = score;
     placeFood();
@@ -98,8 +108,8 @@
     dir = nextDir;
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
-    if (snake.some((s) => s.x === head.x && s.y === head.y)) return gameOver();
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver("wall");
+    if (snake.some((s) => s.x === head.x && s.y === head.y)) return gameOver("self");
 
     snake.unshift(head);
 
@@ -113,6 +123,7 @@
         best = score;
         bestEl.textContent = best;
         localStorage.setItem("snake2_best", best);
+        newRecordThisGame = true;
       }
       placeFood();
     } else {
@@ -182,11 +193,19 @@
       ctx.stroke();
     }
 
-    // 食物：发光红果
+    // 食物：发光红果 + 呼吸式脉冲动画
     const fx = food.x * CELL + CELL / 2;
     const fy = food.y * CELL + CELL / 2;
     const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 220);
     ctx.save();
+    // 外圈光晕（动画）
+    ctx.globalAlpha = 0.25 + 0.25 * pulse;
+    ctx.fillStyle = "#fb7185";
+    ctx.beginPath();
+    ctx.arc(fx, fy, CELL / 2 + 4 + pulse * 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // 主体
     ctx.shadowColor = "#fb7185";
     ctx.shadowBlur = 14 + pulse * 10;
     const grd = ctx.createRadialGradient(fx, fy, 1, fx, fy, CELL / 2);
@@ -329,11 +348,27 @@
     showOverlay("准备好了吗？", "选择一个难度，然后开始");
   }
 
-  function gameOver() {
+  function gameOver(reason) {
     state = STATE.OVER;
     shake = 14;
-    sndDie();
-    showOverlay("游戏结束 💥", "本局得分 " + score + "，重新选择难度再来一局");
+    sndCrash(); // 撞击墙壁 / 游戏结束音效
+    showGameOver(reason);
+  }
+
+  function showGameOver(reason) {
+    const reasonText =
+      reason === "wall" ? "蛇撞到了墙 🧱" :
+      reason === "self" ? "蛇咬到了自己 💫" : "";
+    overlayTitle.textContent = "游戏结束 💥";
+    overlayText.textContent =
+      (reasonText ? reasonText + " · " : "") + "重新选择难度，再来一局";
+    // 弹窗内展示：本局得分 + 历史最高
+    let html =
+      '<div class="stat"><span>本局得分</span><b>' + score + "</b></div>" +
+      '<div class="stat"><span>历史最高</span><b>' + best + "</b></div>";
+    if (newRecordThisGame) html += '<div class="record">🏆 新纪录！</div>';
+    overlayScore.innerHTML = html;
+    overlay.classList.remove("hidden");
   }
 
   function togglePause() {
@@ -351,6 +386,7 @@
   function showOverlay(title, text) {
     overlayTitle.textContent = title;
     overlayText.textContent = text;
+    overlayScore.innerHTML = ""; // 非结束态不显示分数芯片
     overlay.classList.remove("hidden");
   }
   function hideOverlay() { overlay.classList.add("hidden"); }
@@ -379,7 +415,7 @@
     }
   });
 
-  // ---- 输入：触摸滑动 ----
+  // ---- 输入：触摸滑动（手机控制蛇方向）----
   let touchStart = null;
   canvas.addEventListener("touchstart", (e) => {
     touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
