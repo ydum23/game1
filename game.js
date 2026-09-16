@@ -388,3 +388,4 @@
   showOverlay("准备好了吗？", "方向键 / WASD 控制，吃到 🍎 得分");
   rafId = requestAnimationFrame(loop);
 })();
+
