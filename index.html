@@ -31,7 +31,12 @@
         <div class="overlay-card">
           <div class="emoji">🐍</div>
           <h2 id="overlay-title">准备好了吗？</h2>
-          <p id="overlay-text">方向键 / WASD 控制，吃到 🍎 得分</p>
+          <p id="overlay-text">选择一个难度，然后开始</p>
+          <div class="diff-row">
+            <button class="diff-btn" data-diff="easy">简单</button>
+            <button class="diff-btn active" data-diff="normal">普通</button>
+            <button class="diff-btn" data-diff="hard">困难</button>
+          </div>
           <button id="start-btn" class="btn">开始游戏</button>
         </div>
       </div>
@@ -41,13 +46,6 @@
       <button id="pause-btn" class="btn ghost">暂停</button>
       <button id="restart-btn" class="btn ghost">重新开始</button>
       <button id="mute-btn" class="btn ghost" title="音效开关">🔊</button>
-    </div>
-
-    <div class="difficulty">
-      <span class="diff-label">难度</span>
-      <button class="diff-btn" data-diff="easy">简单</button>
-      <button class="diff-btn active" data-diff="normal">普通</button>
-      <button class="diff-btn" data-diff="hard">困难</button>
     </div>
 
     <p class="hint">电脑：方向键 / WASD 移动，空格暂停 · 手机：滑动屏幕控制方向</p>

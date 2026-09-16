@@ -134,6 +134,15 @@ body {
 .overlay-card h2 { font-size: 23px; margin-bottom: 10px; }
 .overlay-card p { color: var(--muted); margin-bottom: 18px; font-size: 14px; }
 
+/* 遮罩内的难度选择行 */
+.diff-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 18px;
+}
+.diff-row .diff-btn { min-width: 74px; }
+
 .btn {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #04140b;

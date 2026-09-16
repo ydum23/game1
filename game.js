@@ -24,10 +24,10 @@
     hard: { step: 82, label: "困难" },
   };
 
-  const STATE = { READY: "ready", RUNNING: "running", PAUSED: "paused", OVER: "over" };
+  const STATE = { READY: "ready", RUNNING: "running", PAUSED: "paused", OVER: "over", COUNTDOWN: "countdown" };
 
   let snake, prevSnake, dir, nextDir, food, score, best, state;
-  let stepInterval, elapsed, lastTime, particles, floaters, shake, rafId;
+  let stepInterval, elapsed, lastTime, particles, floaters, shake, rafId, countdownText = "", countdownToken = 0;
 
   best = Number(localStorage.getItem("snake2_best") || 0);
   bestEl.textContent = best;
@@ -55,6 +55,7 @@
   const sndEat = () => beep(680, 0.08, "square", 0.045);
   const sndDie = () => { beep(220, 0.3, "sawtooth", 0.06); setTimeout(() => beep(120, 0.45, "sawtooth", 0.06), 130); };
   const sndStart = () => beep(520, 0.12, "sine", 0.04);
+  const sndGo = () => beep(880, 0.14, "square", 0.05);
 
   function rand(n) { return Math.floor(Math.random() * n); }
 
@@ -241,6 +242,22 @@
     });
     ctx.globalAlpha = 1;
 
+    // 倒计时：3 / 2 / 1 / GO!
+    if (countdownText) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const scale = 1 + 0.25 * Math.abs(Math.sin(Date.now() / 140));
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(scale, scale);
+      ctx.shadowColor = "#4ade80";
+      ctx.shadowBlur = 26;
+      ctx.fillStyle = countdownText === "GO!" ? "#fbbf24" : "#4ade80";
+      ctx.font = "bold 84px sans-serif";
+      ctx.fillText(countdownText, 0, 0);
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
@@ -278,28 +295,51 @@
     ];
   }
 
-  function start() {
+  // ---- 开始流程：选难度 -> 倒计时 -> 进入游戏 ----
+  function beginGame() {
     reset();
-    state = STATE.RUNNING;
-    pauseBtn.textContent = "暂停";
+    state = STATE.COUNTDOWN;
+    countdownText = "";
     hideOverlay();
-    sndStart();
-    cancelAnimationFrame(rafId);
-    lastTime = 0;
-    rafId = requestAnimationFrame(loop);
+    startCountdown(3, ++countdownToken);
+  }
+
+  function startCountdown(n, token) {
+    if (token !== countdownToken) return; // 旧的倒计时已失效，直接丢弃
+    countdownText = n > 0 ? String(n) : "GO!";
+    if (n > 0) {
+      sndStart();
+      setTimeout(() => startCountdown(n - 1, token), 700);
+    } else {
+      sndGo();
+      setTimeout(() => {
+        if (token !== countdownToken) return;
+        countdownText = "";
+        state = STATE.RUNNING;
+        lastTime = 0;
+      }, 600);
+    }
+  }
+
+  function backToMenu() {
+    countdownToken++; // 让任何进行中的倒计时失效
+    countdownText = "";
+    state = STATE.READY;
+    reset();
+    showOverlay("准备好了吗？", "选择一个难度，然后开始");
   }
 
   function gameOver() {
     state = STATE.OVER;
     shake = 14;
     sndDie();
-    showOverlay("游戏结束 💥", "本局得分 " + score + "，点击再来一局");
+    showOverlay("游戏结束 💥", "本局得分 " + score + "，重新选择难度再来一局");
   }
 
   function togglePause() {
     if (state === STATE.RUNNING) {
       state = STATE.PAUSED;
-      showOverlay("已暂停 ⏸", "点击继续");
+      showOverlay("已暂停 ⏸", "点击继续，或按空格");
       pauseBtn.textContent = "继续";
     } else if (state === STATE.PAUSED) {
       state = STATE.RUNNING;
@@ -329,7 +369,7 @@
       const nd = map[k];
       if (nd.x === -dir.x && nd.y === -dir.y) return; // 不能直接掉头
       nextDir = nd;
-      if (state === STATE.READY || state === STATE.OVER) start();
+      if (state === STATE.READY || state === STATE.OVER) beginGame();
       else if (state === STATE.PAUSED) togglePause();
       return;
     }
@@ -355,7 +395,7 @@
     if (Math.abs(dx) > Math.abs(dy)) nd = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
     else nd = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
     if (!(nd.x === -dir.x && nd.y === -dir.y)) nextDir = nd;
-    if (state === STATE.READY || state === STATE.OVER) start();
+    if (state === STATE.READY || state === STATE.OVER) beginGame();
     else if (state === STATE.PAUSED) togglePause();
     touchStart = null;
   });
@@ -363,10 +403,10 @@
   // ---- 按钮 ----
   startBtn.addEventListener("click", () => {
     if (state === STATE.PAUSED) togglePause();
-    else start();
+    else if (state === STATE.READY || state === STATE.OVER) beginGame();
   });
   pauseBtn.addEventListener("click", togglePause);
-  restartBtn.addEventListener("click", start);
+  restartBtn.addEventListener("click", backToMenu);
   muteBtn.addEventListener("click", () => {
     muted = !muted;
     muteBtn.textContent = muted ? "🔇" : "🔊";
@@ -385,7 +425,6 @@
   // 初始画面
   reset();
   state = STATE.READY;
-  showOverlay("准备好了吗？", "方向键 / WASD 控制，吃到 🍎 得分");
+  showOverlay("准备好了吗？", "选择一个难度，然后开始");
   rafId = requestAnimationFrame(loop);
 })();
-
